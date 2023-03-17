@@ -1,0 +1,35 @@
+model:
+Title 等待问题;
+!设置变量;
+SETS:Person/1..4/; !设置面试者;
+Stage/1..3/;
+PXS(Person,Stage):T,X; !引用指标集Person与Stage，矩阵名称为T;
+PXP(Person,Person)|&1#LT#&2:Y;
+!元素t(i,j)表示第i名面试者参加第j阶段面试所需要的时间;
+!元素x(i,j)表示第i名面试者参加第j阶段面试开始的时间;
+ENDSETS
+
+!设置数据;
+DATA:
+T=10,15,20,15,12,18,20,16,10,8,18,15; !矩阵T的数据;
+ENDDATA
+
+!设置目标函数;
+[obj]min=MAXW; !MAXW为等待时间时间最长的同学所等待的时间;
+MAXW=@max(PXS(i,j)|i#EQ#@size(Person):x(i,3)-x(i,1)-t(i,1)-t(i,2));
+!目标函数不使用for语句，而使用sum语句;
+
+!约束条件1：参加完j阶段的面试才可以进入j+1阶段的面试;
+@for(PXS(i,j)|j#LT#@size(Stage):
+[ORDER]x(i,j)+t(i,j)<x(i,j+1));
+
+!约束条件2：同一阶段只能面试一名面试者;
+MAXT=@max(PXS(i,j)|j#EQ#@size(Stage):x(i,j)+t(i,j));
+@for(Stage(j):
+  @for(PXP(i,k):[SORT1]x(i,j)+t(i,j)<MAXT*Y(i,k));
+  @for(PXP(i,k):[SORT2]x(k,j)+t(k,j)-x(i,j)<MAXT*(1-Y(i,k))));
+@for(PXP:@bin(y));
+
+end
+
+
